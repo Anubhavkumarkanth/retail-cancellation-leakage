@@ -1,0 +1,5 @@
+fate,raw_rows
+1 duplicate (sheet overlap),22523
+2 price <= 0,6029
+3 non-product code,5901
+5 kept,1032918

@@ -1,0 +1,13 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  sql-logic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      # Real-data tests skip themselves because the 45 MB dataset is not committed.
+      - run: pytest -q tests/test_sql_logic.py

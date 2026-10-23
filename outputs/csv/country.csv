@@ -1,0 +1,12 @@
+country,customers,gross_gbp,other_cancelled_gbp,adjusted_rate_pct
+United Kingdom,5334,16855161.0,292585.0,1.77
+France,93,311288.0,16425.0,5.3
+Spain,38,97818.0,12955.0,13.24
+EIRE,3,623796.0,11050.0,1.8
+Germany,107,383848.0,8596.0,2.24
+Denmark,12,67423.0,4067.0,6.03
+Netherlands,22,549775.0,3678.0,0.67
+Sweden,19,86353.0,1736.0,2.02
+Australia,15,167868.0,1216.0,0.73
+Switzerland,22,94047.0,712.0,0.76
+Belgium,29,57013.0,394.0,0.69

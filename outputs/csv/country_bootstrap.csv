@@ -1,0 +1,5 @@
+country,customers,rate_pct,ci_low_pct,ci_high_pct,top_customer_share_of_cancelled_pct,rate_without_top_customer_pct
+United Kingdom,5334,2.0,1.66,2.45,8.0,1.84
+France,91,5.33,0.92,14.49,78.2,1.23
+Spain,38,11.99,0.47,33.34,94.5,0.77
+Germany,107,2.24,1.59,2.91,19.7,1.98

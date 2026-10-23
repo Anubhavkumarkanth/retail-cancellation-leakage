@@ -1,0 +1,76 @@
+{
+  "kpi": {
+    "gross_sales_gbp": 19699785.0,
+    "cancelled_gbp": 719656.0,
+    "headline_rate_pct": 3.65,
+    "reversal_24h_gbp": 356000.0,
+    "other_cancelled_gbp": 357010.0,
+    "unmatched_gbp": 6647.0,
+    "reversal_share_of_cancelled_pct": 49.5,
+    "adjusted_rate_pct": 1.88
+  },
+  "customers_with_other_cancellation": 2331,
+  "identified_customers": 5852,
+  "customer_concentration": {
+    "top_1pct": 35.9,
+    "top_5pct": 58.5,
+    "top_10pct": 69.7
+  },
+  "identified_customer_rate_pct": {
+    "point": 2.08,
+    "ci95": [
+      1.72,
+      2.53
+    ]
+  },
+  "country_bootstrap": [
+    {
+      "country": "United Kingdom",
+      "customers": 5334,
+      "rate_pct": 2.0,
+      "ci_low_pct": 1.66,
+      "ci_high_pct": 2.45,
+      "top_customer_share_of_cancelled_pct": 8.0,
+      "rate_without_top_customer_pct": 1.84
+    },
+    {
+      "country": "France",
+      "customers": 91,
+      "rate_pct": 5.33,
+      "ci_low_pct": 0.92,
+      "ci_high_pct": 14.49,
+      "top_customer_share_of_cancelled_pct": 78.2,
+      "rate_without_top_customer_pct": 1.23
+    },
+    {
+      "country": "Spain",
+      "customers": 38,
+      "rate_pct": 11.99,
+      "ci_low_pct": 0.47,
+      "ci_high_pct": 33.34,
+      "top_customer_share_of_cancelled_pct": 94.5,
+      "rate_without_top_customer_pct": 0.77
+    },
+    {
+      "country": "Germany",
+      "customers": 107,
+      "rate_pct": 2.24,
+      "ci_low_pct": 1.59,
+      "ci_high_pct": 2.91,
+      "top_customer_share_of_cancelled_pct": 19.7,
+      "rate_without_top_customer_pct": 1.98
+    }
+  ],
+  "high_rate_months": [
+    {
+      "month": "2010-05",
+      "top_customer_share_pct": 7.5,
+      "adjusted_rate_pct": 3.61
+    },
+    {
+      "month": "2011-04",
+      "top_customer_share_pct": 72.7,
+      "adjusted_rate_pct": 6.14
+    }
+  ]
+}
