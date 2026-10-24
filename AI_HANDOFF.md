@@ -20,17 +20,17 @@ A shared technical record for project work. It contains no local machine paths, 
 ## B7–B10 work prepared
 
 - Star-schema exporter, six tests, and Power BI guide are included. The four CSVs are generated data and remain ignored.
-- Landing page, site build script, and GitHub Pages workflow are included. The live workflow has not run yet.
-- README, CI comment, and figure-title changes prepared as patches and checked against a temporary clone.
+- Landing page, site build script, and GitHub Pages workflow are included; the first hosted build and deploy succeeded.
+- README, CI comment, and figure-title updates are merged; the README now links to the verified live dashboard.
 - B9 AI-summary work was skipped per the owner's prior decision.
 - The `.pbix` report has not been created; its five cards need to match the values above.
 
-## Deployment sequence
+## Deployment status
 
-1. Review and merge the Pages workflow and site files.
-2. Enable GitHub Pages with GitHub Actions as the source.
-3. Verify the deployed site and figures before adding the live URL to public materials.
-4. Update resume/profile claims only from verified results; do not imply the Power BI report exists until it has been built and checked.
+1. Completed: Pages workflow and site files were merged in PR #1.
+2. Completed: GitHub Pages is enabled with GitHub Actions as the source.
+3. Completed: site and figures verified; the live URL is in the README and repository homepage.
+4. The resume and GitHub profile reflect the verified site and 22 tests. The `.pbix` is still owner-built and is not claimed.
 
 ## Stage log
 
@@ -50,7 +50,7 @@ A shared technical record for project work. It contains no local machine paths, 
 - Baseline replay in a temporary clone: data pipeline rebuilt, 16 original tests passed, and `kpi_overview.csv` matched the committed output.
 - Star-schema check: 1,032,918 fact rows, 739 dates, 4,892 products, 5,875 customers; six draft tests passed.
 - Site check: no horizontal overflow at 1280px or 400px, no broken images or console errors, dashboard chart rendered.
-- GitHub-hosted Pages run, live site, Power BI report, real-phone view, and current LinkedIn text remain unverified.
+- At draft time, GitHub-hosted Pages, the live site, Power BI report, real-phone view, and current LinkedIn text had not been verified. The deployment and live-site checks are now recorded below.
 
 ### Release candidate — Pages and Power BI additions
 
@@ -58,4 +58,14 @@ A shared technical record for project work. It contains no local machine paths, 
 - The workflow YAML parsed into two jobs with least-privilege permissions; the deploy job receives only Pages and OIDC permissions.
 - The combined suite passed 22 tests locally (9 SQL logic, 7 real-data, 6 star-schema). The new star-schema test resolves `data/retail.db` relative to the repository, so CI can run it after `run_all.py`.
 - The site built locally and all template placeholders were substituted. The local Playwright check did not finish in this runner; Claude's separate local check reported no overflow at 1280px and 400px, broken images, or console errors.
-- The GitHub-hosted Pages run, live site, `.pbix`, real-phone view, and current LinkedIn text remain unverified.
+- The GitHub-hosted Pages build and deploy succeeded. The live homepage and dashboard returned HTTP 200; all seven local assets returned HTTP 200; 3.65%, 1.88%, and 49.5% are present; no KPI template placeholders remain.
+- The `.pbix`, real-phone view, and current LinkedIn text remain unverified.
+
+### 2026-10-24 — Release published
+
+- PR #1 merged as `bd431ff`; both pull-request SQL-logic checks passed.
+- GitHub Pages enabled with Actions. Workflow run 40117269003 completed successfully; the build job ran the pipeline and full 22-test suite before deploy.
+- Live URL: https://anubhavkumarkanth.github.io/retail-cancellation-leakage/
+- Live landing page and dashboard returned HTTP 200. The five figures, Excel workbook, and CSV listing returned HTTP 200. KPI values and template substitution verified.
+- Repository homepage now points to the live site; repository About description now reflects the live dashboard and 22 tests.
+- .pbix remains unbuilt because Power BI Desktop is not installed in the available environment. It is not claimed in the README or resume.
