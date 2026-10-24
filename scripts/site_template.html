@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Retail Cancellation Leakage Analysis</title>
-<meta name="description" content="SQL and Python analysis of 1.07 million UCI Online Retail II rows: separating order-entry reversals from real cancellations.">
+<meta name="description" content="SQL and Python analysis of 1.07 million real retail sales rows: how much of the cancelled value is quick reversals, and what is left.">
 <style>
   :root { --bg:#f7f8fa; --surface:#fff; --ink:#18212f; --muted:#5b6575; --line:#dde2ea; --accent:#2457c5; --soft:#e8eefb; }
   @media (prefers-color-scheme: dark) { :root { --bg:#10151d; --surface:#171e2a; --ink:#e6eaf1; --muted:#9ca7b9; --line:#2b3446; --accent:#89a8ff; --soft:#1d2a49; color-scheme: dark; } }
@@ -37,42 +37,42 @@
 <div class="wrap">
 <header>
   <h1>Retail Cancellation Leakage Analysis</h1>
-  <p class="lede">How much revenue do cancellations cost an online retailer, and how much of it can be acted on? An SQL and Python analysis of 1.07 million real transaction rows (UCI Online Retail II, Dec 2009 to Dec 2011).</p>
+  <p class="lede">How much sales value does an online retailer lose to cancellations, and how much of it can it do something about? An SQL and Python analysis of 1.07 million rows of real sales from a UK online gift retailer (UCI Online Retail II, Dec 2009 to Dec 2011).</p>
 </header>
 
 <section class="kpis" aria-label="Key numbers">
-  <div class="kpi"><b>$headline</b><span>Headline cancellation rate: $cancelled of $gross gross sales</span></div>
-  <div class="kpi"><b>$reversal_share</b><span>of cancelled value is same-day order reversals</span></div>
-  <div class="kpi main"><b>$adjusted</b><span>Adjusted rate once reversals are separated</span></div>
+  <div class="kpi"><b>$headline</b><span>Overall cancellation rate: $cancelled of $gross in sales</span></div>
+  <div class="kpi"><b>$reversal_share</b><span>of the cancelled value is orders reversed within 24 hours</span></div>
+  <div class="kpi main"><b>$adjusted</b><span>Cancellation rate once those reversals are left out</span></div>
 </section>
 
 <h2>What the data shows</h2>
 <ul>
-  <li>Two bulk orders, placed and cancelled within minutes, explain the two largest monthly spikes; separating same-day reversals turns a $headline headline into $adjusted.</li>
-  <li>Cancelled value is concentrated: the top 5% of $skus SKUs hold $top5 of non-reversal cancelled value.</li>
-  <li>Spain's $spain_rate rate rests on one customer ($spain_top_share of its cancelled value); without that customer it is $spain_without.</li>
-  <li>Across identified customers the rate is $ci_text, from a customer-clustered bootstrap.</li>
+  <li>Two huge orders, each placed and cancelled within minutes, cause the two biggest monthly spikes. Leaving out reversals (same customer, product and quantity, cancelled within 24 hours) turns the $headline rate into $adjusted.</li>
+  <li>A few products account for most cancellations: of the $skus products with cancellations other than reversals, the top 5% hold $top5 of that cancelled value.</li>
+  <li>Spain's $spain_rate rate comes down to one customer ($spain_top_share of its cancelled value); without that customer it is $spain_without.</li>
+  <li>For customers with a recorded customer ID the rate is $ci_text, from a bootstrap that resamples whole customers.</li>
 </ul>
 
 <h2>Explore</h2>
 <div class="links">
   <a class="primary" href="dashboard.html">Interactive dashboard</a>
   <a href="downloads/cancellation_summary.xlsx">Excel summary</a>
-  <a href="downloads/csv/">Query results (CSV)</a>
+  <a href="downloads/csv/">Data tables (CSV)</a>
   <a href="$repo_url">Code and method on GitHub</a>
 </div>
 
 <h2>Charts</h2>
 <div class="figs">
-  <figure><img src="figures/01_monthly_headline_vs_adjusted.png" alt="Monthly headline versus adjusted cancellation rate" loading="lazy"><figcaption>Monthly headline vs adjusted rate</figcaption></figure>
+  <figure><img src="figures/01_monthly_headline_vs_adjusted.png" alt="Monthly cancellation rate with and without reversals" loading="lazy"><figcaption>Monthly rate, with and without reversals</figcaption></figure>
   <figure><img src="figures/02_cancelled_value_split.png" alt="Cancelled value split into reversals, other cancellations and no customer ID" loading="lazy"><figcaption>Where the cancelled value comes from</figcaption></figure>
-  <figure><img src="figures/03_top_skus.png" alt="Top 15 SKUs by non-reversal cancelled value" loading="lazy"><figcaption>Top SKUs by cancelled value</figcaption></figure>
-  <figure><img src="figures/04_country_rates_ci.png" alt="Country rates with bootstrap confidence intervals" loading="lazy"><figcaption>Country rates with 95% intervals</figcaption></figure>
-  <figure><img src="figures/05_cancel_frequency_bands.png" alt="Cancellation rate by number of cancellation invoices per customer" loading="lazy"><figcaption>Rate by cancellation frequency</figcaption></figure>
+  <figure><img src="figures/03_top_skus.png" alt="Top 15 products by cancelled value, not counting reversals" loading="lazy"><figcaption>Products with the most cancelled value</figcaption></figure>
+  <figure><img src="figures/04_country_rates_ci.png" alt="Country cancellation rates with 95% confidence ranges" loading="lazy"><figcaption>Country rates with 95% confidence ranges</figcaption></figure>
+  <figure><img src="figures/05_cancel_frequency_bands.png" alt="Cancellation rate by number of cancellation invoices per customer" loading="lazy"><figcaption>Rate by how often customers cancel</figcaption></figure>
 </div>
 
 <h2>Method and limits</h2>
-<p>Raw rows are loaded unmodified, cleaned in SQL with four documented rules, and each cancellation is classed as a same-day reversal when the same customer, product and opposite quantity occur within 24 hours of the sale. The site is rebuilt from the original data and published only after all tests pass. Limits: the data has no cancellation reasons, the reversal rule is a heuristic, and figures are list-price revenue, not margin.</p>
+<p>The raw data is loaded unchanged and cleaned in SQL with documented rules: duplicate rows, zero prices and non-product codes such as postage are removed. A cancellation counts as a same-day reversal when the same customer cancels the same product and quantity within 24 hours of buying it. The site is rebuilt from the original data and published only after all automated tests pass. Limits: the data gives no reasons for cancelling, the reversal rule is a rule of thumb, and the figures are invoice prices, not profit.</p>
 
 <footer>
   Data: Chen, D. (2012). Online Retail II. UCI Machine Learning Repository, CC BY 4.0. Code: MIT. Built $built from commit $commit.
