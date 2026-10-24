@@ -144,7 +144,7 @@ def main() -> dict:
         ax.text(i, r.rate_pct + 0.05, f"{int(r.customers):,} customers\n£{r.spend_gbp / 1e6:.1f}m spend", ha="center", fontsize=8, color=INK)
     ax.set_xlabel("Cancellation invoices per customer"); ax.set_ylabel("Cancelled value / spend (%)")
     ax.set_ylim(0, freq["rate_pct"].max() * 1.5)
-    style(ax, "Cancelling customers cancel about 2.7% of what they buy, at any frequency")
+    style(ax, "Customers who cancel: about 2.7% of spend, at any frequency")
     fig.tight_layout(); fig.savefig(FIG / "05_cancel_frequency_bands.png", dpi=160); plt.close(fig)
 
     (ROOT / "outputs" / "findings.json").write_text(json.dumps(findings, indent=2))
