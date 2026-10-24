@@ -49,7 +49,7 @@ def build(repo: Path, site: Path) -> Path:
         "spain_rate": f"{spain['rate_pct']:.1f}%",
         "spain_top_share": f"{spain['top_customer_share_of_cancelled_pct']:.1f}%",
         "spain_without": f"{spain['rate_without_top_customer_pct']:.1f}%",
-        "ci_text": f"{ci['point']:.2f}% (95% CI {ci['ci95'][0]:.2f}% to {ci['ci95'][1]:.2f}%)",
+        "ci_text": f"{ci['point']:.2f}%, with a 95% confidence range of {ci['ci95'][0]:.2f}% to {ci['ci95'][1]:.2f}%",
         "repo_url": REPO_URL,
         "built": date.today().isoformat(),
         "commit": commit,
