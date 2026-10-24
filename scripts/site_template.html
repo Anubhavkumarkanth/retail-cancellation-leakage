@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Retail Cancellation Leakage Analysis</title>
-<meta name="description" content="SQL and Python analysis of 1.07 million real retail sales rows: how much of the cancelled value is quick reversals, and what is left.">
+<meta name="description" content="SQL and Python analysis of 1.07 million lines of real sales data: how much of the cancelled sales are quick reversals, and what is left.">
 <style>
   :root { --bg:#f7f8fa; --surface:#fff; --ink:#18212f; --muted:#5b6575; --line:#dde2ea; --accent:#2457c5; --soft:#e8eefb; }
   @media (prefers-color-scheme: dark) { :root { --bg:#10151d; --surface:#171e2a; --ink:#e6eaf1; --muted:#9ca7b9; --line:#2b3446; --accent:#89a8ff; --soft:#1d2a49; color-scheme: dark; } }
@@ -37,21 +37,21 @@
 <div class="wrap">
 <header>
   <h1>Retail Cancellation Leakage Analysis</h1>
-  <p class="lede">How much sales value does an online retailer lose to cancellations, and how much of it can it do something about? An SQL and Python analysis of 1.07 million rows of real sales from a UK online gift retailer (UCI Online Retail II, Dec 2009 to Dec 2011).</p>
+  <p class="lede">How much does an online shop lose to cancellations, and how much of that could it act on? An SQL and Python analysis of 1.07 million lines of real sales data from a UK online gift retailer (UCI Online Retail II, Dec 2009 to Dec 2011).</p>
 </header>
 
 <section class="kpis" aria-label="Key numbers">
   <div class="kpi"><b>$headline</b><span>Overall cancellation rate: $cancelled of $gross in sales</span></div>
-  <div class="kpi"><b>$reversal_share</b><span>of the cancelled value is orders reversed within 24 hours</span></div>
+  <div class="kpi"><b>$reversal_share</b><span>of cancelled sales (by value) were orders reversed within 24 hours</span></div>
   <div class="kpi main"><b>$adjusted</b><span>Cancellation rate once those reversals are left out</span></div>
 </section>
 
 <h2>What the data shows</h2>
 <ul>
   <li>Two huge orders, each placed and cancelled within minutes, cause the two biggest monthly spikes. Leaving out reversals (same customer, product and quantity, cancelled within 24 hours) turns the $headline rate into $adjusted.</li>
-  <li>A few products account for most cancellations: of the $skus products with cancellations other than reversals, the top 5% hold $top5 of that cancelled value.</li>
-  <li>Spain's $spain_rate rate comes down to one customer ($spain_top_share of its cancelled value); without that customer it is $spain_without.</li>
-  <li>For customers with a recorded customer ID the rate is $ci_text, from a bootstrap that resamples whole customers.</li>
+  <li>A few products account for most cancellations: of the $skus products with cancellations other than reversals, the top 5% account for $top5 of those cancelled sales.</li>
+  <li>Spain's $spain_rate rate comes down to one customer ($spain_top_share of its cancelled sales); without that customer it is $spain_without.</li>
+  <li>For customers with an ID on record the rate is $ci_text.</li>
 </ul>
 
 <h2>Explore</h2>

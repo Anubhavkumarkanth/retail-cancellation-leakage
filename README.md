@@ -2,10 +2,10 @@
 
 [![tests](https://github.com/Anubhavkumarkanth/retail-cancellation-leakage/actions/workflows/tests.yml/badge.svg)](https://github.com/Anubhavkumarkanth/retail-cancellation-leakage/actions/workflows/tests.yml)
 
-An SQL and Python analysis of two years of real sales from a UK online gift retailer (UCI *Online Retail II*, 1.07 million raw rows).
-**The question:** how much sales value is lost to cancellations, where does it come from, and how much of it can the business actually do something about?
+An SQL and Python analysis of two years of real sales from a UK online gift retailer (UCI *Online Retail II*: 1.07 million lines of raw sales data).
+**The question:** how much in sales is lost to cancellations, where do the cancellations come from, and how much of that can the business act on?
 
-**Short answer:** about half of the cancelled value is orders reversed within 24 hours (same customer, same product, same quantity). Counted separately, the cancellation rate falls from 3.65% to 1.88%.
+**Short answer:** about half of cancelled sales (by value) are orders the same customer reversed within 24 hours, for the same product and quantity. Leave those out and the cancellation rate falls from 3.65% to 1.88%.
 
 **Live dashboard:** [Open the published dashboard](https://anubhavkumarkanth.github.io/retail-cancellation-leakage/). · **Power BI:** _no report file yet; a build guide and a data export script are included._
 
@@ -17,13 +17,13 @@ Every figure is rebuilt from the raw data by `python run_all.py` and checked by 
 
 | # | Finding | Evidence |
 |---|---------|----------|
-| 1 | Cancellations come to **3.65%** of sales (£719,656 of £19.70m). But **49.5% of that cancelled value is same-day reversals**: the same customer cancelling the same product and quantity within 24 hours of buying it. Leave those out and the rate is **1.88%**. | `outputs/csv/kpi_overview.csv` |
-| 2 | Two single orders cause the two biggest monthly spikes: 80,995 units of one product (£168k, Dec 2011) and 74,215 units of another (£77k, Jan 2011). Each was placed and cancelled within 16 minutes, and together they are 34% of all cancelled value. Both were far out of line: the first product has no other sale at all, the second product's next-largest sale is 288 units, and 99.9% of all sale lines are 500 units or fewer. Without reversals, Dec 2011 drops from 28.3% to 1.15% and Jan 2011 from 13.6% to 2.0%. | `reports/figures/01_monthly_headline_vs_adjusted.png` |
-| 3 | The one real spike left is April 2011 (6.1% without reversals), and 72.7% of that month's remaining cancelled value comes from one customer (£23k). | `outputs/csv/high_rate_months.csv` |
-| 4 | A few products account for most cancellations. Of the 2,746 products with cancellations other than reversals, the top 5% hold 53.1% of that cancelled value and the top 20% hold 80.6%. The largest is Regency Cakestand 3 Tier at £14.4k (4.4% of its sales). Some small products have very high rates, for example White Cherry Lights at 34.9% and Small Fairy Cake Fridge Magnets at 53.0%, on only £7k to £18k of sales. | `outputs/csv/sku_top_cancelled.csv` |
-| 5 | Country differences are not reliable. Spain's 12.0% and France's 5.3% each come down to one customer (94.5% and 78.2% of that country's cancelled value). Without that customer they are 0.8% and 1.2%. Their 95% confidence ranges (0.5% to 33.3% and 0.9% to 14.5%) overlap the UK's 2.0% (1.7% to 2.5%). | `outputs/csv/country_bootstrap.csv` |
-| 6 | Frequent cancellers are not "bad customers". 60% of identified customers never cancel apart from reversals. Those who do cancel about 2.6% to 2.7% of what they spend, whether they cancelled once, 2 to 4 times, or 5 or more times. The 355 customers who cancelled 5 or more times spend £6.0m and account for 46% of the cancelled value (excluding reversals), close to their 45% share of spending among customers who cancel. | `outputs/csv/customer_cancel_frequency.csv` |
-| 7 | Across 5,852 identified customers the overall rate is 2.08%, with a 95% confidence range of 1.72% to 2.53% (a bootstrap that resamples whole customers 2,000 times). The top 1% of cancelling customers hold 35.9% of cancelled value, and the top 10% hold 69.7%. | `outputs/findings.json` |
+| 1 | Cancellations come to **3.65%** of sales (£719,656 of £19.70m). But **49.5% of it is same-day reversals**: the same customer cancelling the same product and quantity within 24 hours of buying it. Leave those out and the rate is **1.88%**. | `outputs/csv/kpi_overview.csv` |
+| 2 | Each of the two biggest monthly spikes is one huge order, placed and cancelled within 16 minutes: 80,995 units of one product (£168k, Dec 2011) and 74,215 units of another (£77k, Jan 2011). Together they are 34% of all cancelled sales. Neither looks like a normal order: the first product was never sold in any other order, the second product's next-largest sale was 288 units, and 99.9% of all sale lines are 500 units or fewer. With reversals left out, Dec 2011 drops from 28.3% to 1.15% and Jan 2011 from 13.6% to 2.0%. | `reports/figures/01_monthly_headline_vs_adjusted.png` |
+| 3 | The one real spike left is April 2011 (6.1% without reversals), and one customer accounts for 72.7% of that month's remaining cancelled sales (£23k). | `outputs/csv/high_rate_months.csv` |
+| 4 | A few products account for most cancellations. Of the 2,746 products with cancellations other than reversals, the top 5% account for 53.1% of those cancelled sales and the top 20% for 80.6%. The largest is Regency Cakestand 3 Tier at £14.4k (4.4% of its sales). Some small products have very high rates, for example White Cherry Lights at 34.9% and Small Fairy Cake Fridge Magnets at 53.0%, on only £7k to £18k of sales. | `outputs/csv/sku_top_cancelled.csv` |
+| 5 | Don't read much into country differences. Spain's 12.0% and France's 5.3% each come down to one customer (94.5% and 78.2% of that country's cancelled sales); without that customer they are 0.8% and 1.2%. Their likely ranges (95% confidence: 0.5% to 33.3%, and 0.9% to 14.5%) overlap the UK's 2.0% (1.7% to 2.5%). | `outputs/csv/country_bootstrap.csv` |
+| 6 | Frequent cancellers are not "bad customers". 60% of customers with an ID on record never cancel, apart from reversals. Those who do cancel about 2.6% to 2.7% of what they spend, whether they cancelled once, 2 to 4 times, or 5 or more times. The 355 customers who cancelled 5 or more times spend £6.0m and account for 46% of cancelled sales (not counting reversals), close to their 45% share of spending among customers who cancel. | `outputs/csv/customer_cancel_frequency.csv` |
+| 7 | Across the 5,852 customers with an ID, the overall rate is 2.08%, and the true figure is likely between 1.72% and 2.53% (a 95% confidence range from resampling whole customers 2,000 times). The top 1% of customers who cancel account for 35.9% of cancelled sales, and the top 10% for 69.7%. | `outputs/findings.json` |
 
 ## Recommendations
 
@@ -51,7 +51,7 @@ Each one links back to a finding above. None comes with a savings estimate, beca
    What remains are product lines from normal sales, plus cancellations (invoice numbers starting with `C`, with a negative quantity).
 4. **Classify cancellations** (`sql/02_classify_cancellations.sql`). A cancellation counts as a **same-day reversal** if the same customer bought the same product, in exactly the opposite quantity, at most 24 hours earlier. Everything else is "other". Cancellations with no customer ID cannot be matched.
 5. **Metrics** (`sql/03_metrics.sql`): the headline numbers, plus breakdowns by month, country and product, how concentrated cancellations are, and how often customers cancel. The concentration and ranking queries use CTEs and window functions.
-6. **Statistics** (`src/analysis.py`): 95% confidence ranges from a bootstrap. Whole customers are resampled rather than single lines, because one customer's lines are not independent of each other. Also leave-one-customer-out checks and concentration shares. The random seed is fixed, so every run gives the same numbers.
+6. **Statistics** (`src/analysis.py`): 95% confidence ranges from a bootstrap. Whole customers are resampled rather than single lines, because one customer's lines are not independent of each other. It also re-runs each country's rate without its biggest customer, and measures how much of the total the top products and customers make up. The random seed is fixed, so every run gives the same numbers.
 7. **Outputs:** an interactive HTML dashboard (`reports/dashboard.html`, Plotly), an Excel summary (`outputs/cancellation_summary.xlsx`), five charts (`reports/figures/`) and CSV query results (`outputs/csv/`).
 
 **Definitions.** *Headline rate* = all cancelled value ÷ gross sales. *Adjusted rate* = cancelled value excluding reversals ÷ (gross sales minus the reversed sales). Reversed sales are approximated by the reversal's cancelled value (same quantity, customer and product; the price can differ slightly).
@@ -94,7 +94,7 @@ flowchart LR
 ## Limitations
 
 - **No cancellation reasons, and no link back to the original invoice.** "Cancellation" mixes customer returns, order-entry corrections and cancelled orders. The reversal rule is a rule of thumb: it can miss a reversal made after 24 hours or for a different quantity, and it could label a genuine same-day return as a reversal.
-- **22% of sale lines (13% of sales value) have no customer ID** (guest or unrecorded checkouts), and only 332 cancellation lines are in that group. Customer-level figures (findings 5 to 7) cover identified customers only; their rate (2.08%) differs slightly from the all-sales adjusted rate (1.88%).
+- **22% of sale lines (13% of sales value) have no customer ID** (guest or unrecorded checkouts), and only 332 cancellation lines are in that group. Customer-level figures (findings 5 to 7) cover identified customers only; their rate (2.08%) differs slightly from the 1.88% for all sales without reversals.
 - One retailer, December 2009 to December 2011, in pounds not adjusted for inflation. The findings describe this business in that period, not retail in general.
 - Cancelled value is the price on the invoice, not profit; nothing here estimates lost profit or savings.
 - A customer's country is the country on their order lines; a few customers appear under more than one country.

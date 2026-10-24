@@ -21,8 +21,8 @@ def dashboard() -> Path:
 
     fig = make_subplots(
         rows=2, cols=2, vertical_spacing=0.22, horizontal_spacing=0.12,
-        subplot_titles=("Monthly cancellation rate, with and without reversals", "Where the cancelled value comes from (£)",
-                        "Top 10 products by cancelled value, excluding reversals (£)", "Rate by country, with 95% confidence ranges"),
+        subplot_titles=("Monthly cancellation rate, with and without reversals", "Where cancelled sales come from (£)",
+                        "Top 10 products by cancelled sales, excluding reversals (£)", "Rate by country, with 95% confidence ranges"),
     )
     fig.add_trace(go.Scatter(x=monthly.invoice_month, y=monthly.headline_rate_pct, name="All cancellations", line=dict(color=GREY, width=2)), 1, 1)
     fig.add_trace(go.Scatter(x=monthly.invoice_month, y=monthly.adjusted_rate_pct, name="Without reversals", line=dict(color=BLUE, width=3)), 1, 1)
@@ -44,7 +44,7 @@ def dashboard() -> Path:
     cards = [
         (f"£{kpi.gross_sales_gbp / 1e6:.1f}m", "Product sales, Dec 2009 to Dec 2011"),
         (f"{kpi.headline_rate_pct:.2f}%", "Overall cancellation rate (by value)"),
-        (f"{kpi.reversal_share_of_cancelled_pct:.0f}%", "Of the cancelled value is orders reversed within 24 hours"),
+        (f"{kpi.reversal_share_of_cancelled_pct:.0f}%", "Of cancelled sales (by value) were orders reversed within 24 hours"),
         (f"{kpi.adjusted_rate_pct:.2f}%", "Cancellation rate once reversals are left out"),
     ]
     card_html = "".join(f'<div class="card"><b>{v}</b><span>{t}</span></div>' for v, t in cards)

@@ -104,7 +104,7 @@ def main() -> dict:
     for m in ("2011-01", "2011-12"):
         r = monthly[monthly.invoice_month == m].iloc[0]
         ax.annotate(f"{r.headline_rate_pct:.1f}%", (m, r.headline_rate_pct), textcoords="offset points", xytext=(-6, 6), color=INK, fontsize=9, ha="right")
-    ax.set_ylabel("Cancelled value as % of sales")
+    ax.set_ylabel("Cancelled sales as % of all sales")
     ax.set_xticks(range(0, len(monthly), 3), monthly["invoice_month"][::3], rotation=0, fontsize=8)
     ax.legend(frameon=False, loc="upper left", fontsize=9)
     style(ax, "The two biggest spikes are two huge orders cancelled within minutes")
@@ -116,16 +116,16 @@ def main() -> dict:
     for name, v, col in parts:
         ax.barh([0], [v / 1000], left=left, color=col, label=f"{name}: £{v / 1000:,.0f}k")
         left += v / 1000
-    ax.set_yticks([]); ax.set_xlabel("Cancelled value (£ thousand)")
+    ax.set_yticks([]); ax.set_xlabel("Cancelled sales (£ thousand)")
     ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.35), ncol=1, fontsize=9)
-    style(ax, "About half the cancelled value is orders reversed within 24 hours")
+    style(ax, "About half of cancelled sales were orders reversed within 24 hours")
     fig.tight_layout(); fig.savefig(FIG / "02_cancelled_value_split.png", dpi=160); plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 4))
     labels = skus["description"].str.title().str.slice(0, 32) + " (" + skus["rate_pct"].round(0).astype(int).astype(str) + "%)"
     ax.barh(labels[::-1], skus["other_cancelled_gbp"][::-1] / 1000, color=ACCENT)
-    ax.set_xlabel("Cancelled value excluding reversals (£ thousand)\n% in brackets = share of that product's sales")
-    style(ax, "The 15 products with the most cancelled value")
+    ax.set_xlabel("Cancelled sales, not counting reversals (£ thousand)\n% in brackets = share of that product's sales")
+    style(ax, "The 15 products with the most cancelled sales")
     ax.tick_params(axis="y", labelsize=8)
     fig.tight_layout(); fig.savefig(FIG / "03_top_skus.png", dpi=160); plt.close(fig)
 
@@ -144,7 +144,7 @@ def main() -> dict:
         ax.text(i, r.rate_pct + 0.05, f"{int(r.customers):,} customers\n£{r.spend_gbp / 1e6:.1f}m spend", ha="center", fontsize=8, color=INK)
     ax.set_xlabel("Number of times a customer cancelled"); ax.set_ylabel("% of spend cancelled")
     ax.set_ylim(0, freq["rate_pct"].max() * 1.5)
-    style(ax, "Once or 5+ times, customers cancel about 2.7% of spend")
+    style(ax, "Cancelling once or often: about 2.7% of spend either way")
     fig.tight_layout(); fig.savefig(FIG / "05_cancel_frequency_bands.png", dpi=160); plt.close(fig)
 
     (ROOT / "outputs" / "findings.json").write_text(json.dumps(findings, indent=2))
