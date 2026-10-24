@@ -62,16 +62,16 @@ cd retail-cancellation-leakage
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python run_all.py          # download -> load -> SQL -> analysis -> dashboard + workbook
-pytest -q                  # 13 tests
+pytest -q                  # 16 tests
 ```
 
 Optional, to regenerate the dashboard screenshot: `pip install playwright && playwright install chromium && python scripts/screenshot_dashboard.py`.
 
 ## Validation
 
-`pytest -q` runs 13 tests, all passing at the last commit:
+`pytest -q` runs 16 tests, all passing at the last commit:
 
-- **SQL logic on a hand-built dataset** (`tests/test_sql_logic.py`, 6 tests): sheet-overlap dedupe, exclusion of non-product, zero-price and adjustment rows, `line_value` arithmetic, reversal classification, and the two negative cases (quantity mismatch and cancellation before sale must not count as reversals). These also run in CI.
+- **SQL logic on a hand-built dataset** (`tests/test_sql_logic.py`, 9 tests): sheet-overlap dedupe, exclusion of non-product, zero-price and adjustment rows, `line_value` arithmetic, reversal classification, the two negative cases (quantity mismatch and cancellation before sale must not count as reversals), and the 24-hour boundary (23 h 59 min and exactly 24 h are reversals; 24 h 1 min is not). These also run in CI.
 - **Reconciliation on the real data** (`tests/test_real_data.py`, 7 tests): every raw row is accounted for; sale and cancellation totals match an independent pandas re-implementation of the cleaning to 1e-9; classes sum to the cancelled total; no invalid values survive cleaning; overlap invoices are kept once; the KPI table is internally consistent. These are skipped automatically if `data/retail.db` has not been built.
 
 ## Limitations

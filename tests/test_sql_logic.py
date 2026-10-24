@@ -66,3 +66,15 @@ def test_cancellation_must_not_precede_the_sale(con):
     con.execute("DROP TABLE cancellation_class")
     con.executescript((SQL / "02_classify_cancellations.sql").read_text())
     assert con.execute("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == "other"
+
+
+@pytest.mark.parametrize("cancelled_at, expected", [
+    ("2010-01-02 09:59:00", "reversal_24h"),  # 23 h 59 min after the sale at 2010-01-01 10:00
+    ("2010-01-02 10:00:00", "reversal_24h"),  # exactly 24 h: the rule is "at most 24 hours"
+    ("2010-01-02 10:01:00", "other"),         # 24 h 1 min: outside the window
+])
+def test_reversal_window_is_at_most_24_hours(con, cancelled_at, expected):
+    con.execute("UPDATE clean_lines SET invoice_date = ? WHERE invoice = 'C1001'", (cancelled_at,))
+    con.execute("DROP TABLE cancellation_class")
+    con.executescript((SQL / "02_classify_cancellations.sql").read_text())
+    assert con.execute("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == expected
