@@ -99,52 +99,52 @@ def main() -> dict:
 
     # --- figures
     fig, ax = plt.subplots(figsize=(10, 4.2))
-    ax.plot(monthly["invoice_month"], monthly["headline_rate_pct"], color=MUTED, lw=2, label="Headline rate (all cancelled value)")
-    ax.plot(monthly["invoice_month"], monthly["adjusted_rate_pct"], color=ACCENT, lw=2.5, label="Adjusted rate (same-day reversals removed)")
+    ax.plot(monthly["invoice_month"], monthly["headline_rate_pct"], color=MUTED, lw=2, label="All cancellations")
+    ax.plot(monthly["invoice_month"], monthly["adjusted_rate_pct"], color=ACCENT, lw=2.5, label="Without orders reversed within 24 hours")
     for m in ("2011-01", "2011-12"):
         r = monthly[monthly.invoice_month == m].iloc[0]
         ax.annotate(f"{r.headline_rate_pct:.1f}%", (m, r.headline_rate_pct), textcoords="offset points", xytext=(-6, 6), color=INK, fontsize=9, ha="right")
-    ax.set_ylabel("Cancelled value / gross sales (%)")
+    ax.set_ylabel("Cancelled value as % of sales")
     ax.set_xticks(range(0, len(monthly), 3), monthly["invoice_month"][::3], rotation=0, fontsize=8)
     ax.legend(frameon=False, loc="upper left", fontsize=9)
-    style(ax, "The two biggest spikes are reversed bulk orders, not a returns problem")
+    style(ax, "The two biggest spikes are two huge orders cancelled within minutes")
     fig.tight_layout(); fig.savefig(FIG / "01_monthly_headline_vs_adjusted.png", dpi=160); plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(7, 3.2))
-    parts = [("Same-day reversals", kpi.reversal_24h_gbp, ALERT), ("Other cancellations", kpi.other_cancelled_gbp, ACCENT), ("No customer ID", kpi.unmatched_gbp, MUTED)]
+    parts = [("Reversed within 24 hours", kpi.reversal_24h_gbp, ALERT), ("Other cancellations", kpi.other_cancelled_gbp, ACCENT), ("No customer ID, so can't be matched", kpi.unmatched_gbp, MUTED)]
     left = 0
     for name, v, col in parts:
         ax.barh([0], [v / 1000], left=left, color=col, label=f"{name}: £{v / 1000:,.0f}k")
         left += v / 1000
     ax.set_yticks([]); ax.set_xlabel("Cancelled value (£ thousand)")
     ax.legend(frameon=False, loc="upper center", bbox_to_anchor=(0.5, -0.35), ncol=1, fontsize=9)
-    style(ax, "About half of cancelled value is same-day reversals")
+    style(ax, "About half the cancelled value is orders reversed within 24 hours")
     fig.tight_layout(); fig.savefig(FIG / "02_cancelled_value_split.png", dpi=160); plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(8, 4))
     labels = skus["description"].str.title().str.slice(0, 32) + " (" + skus["rate_pct"].round(0).astype(int).astype(str) + "%)"
     ax.barh(labels[::-1], skus["other_cancelled_gbp"][::-1] / 1000, color=ACCENT)
-    ax.set_xlabel("Non-reversal cancelled value (£ thousand); label = share of that SKU's sales")
-    style(ax, "Top 15 SKUs by cancelled value")
+    ax.set_xlabel("Cancelled value excluding reversals (£ thousand)\n% in brackets = share of that product's sales")
+    style(ax, "The 15 products with the most cancelled value")
     ax.tick_params(axis="y", labelsize=8)
     fig.tight_layout(); fig.savefig(FIG / "03_top_skus.png", dpi=160); plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(7.5, 4))
     err = [country_ci["rate_pct"] - country_ci["ci_low_pct"], country_ci["ci_high_pct"] - country_ci["rate_pct"]]
-    ax.bar(country_ci["country"], country_ci["rate_pct"], yerr=err, color=ACCENT, capsize=4, label="Rate with 95% bootstrap CI")
-    ax.scatter(country_ci["country"], country_ci["rate_without_top_customer_pct"], color=ALERT, zorder=3, label="Rate without the largest canceller")
-    ax.set_ylabel("Non-reversal cancelled value / spend (%), identified customers")
+    ax.bar(country_ci["country"], country_ci["rate_pct"], yerr=err, color=ACCENT, capsize=4, label="Rate, with 95% confidence range")
+    ax.scatter(country_ci["country"], country_ci["rate_without_top_customer_pct"], color=ALERT, zorder=3, label="Rate without its top cancelling customer")
+    ax.set_ylabel("% of spend cancelled\n(excluding reversals; customers with an ID)")
     ax.legend(frameon=False, fontsize=9)
-    style(ax, "Spain's high rate is one customer, and its CI is very wide")
+    style(ax, "Spain's high rate comes from one customer and is very uncertain")
     fig.tight_layout(); fig.savefig(FIG / "04_country_rates_ci.png", dpi=160); plt.close(fig)
 
     fig, ax = plt.subplots(figsize=(7, 3.8))
     ax.bar(freq["cancel_invoice_band"], freq["rate_pct"], color=ACCENT)
     for i, r in freq.iterrows():
         ax.text(i, r.rate_pct + 0.05, f"{int(r.customers):,} customers\n£{r.spend_gbp / 1e6:.1f}m spend", ha="center", fontsize=8, color=INK)
-    ax.set_xlabel("Cancellation invoices per customer"); ax.set_ylabel("Cancelled value / spend (%)")
+    ax.set_xlabel("Number of times a customer cancelled"); ax.set_ylabel("% of spend cancelled")
     ax.set_ylim(0, freq["rate_pct"].max() * 1.5)
-    style(ax, "Customers who cancel: about 2.7% of spend, at any frequency")
+    style(ax, "Once or 5+ times, customers cancel about 2.7% of spend")
     fig.tight_layout(); fig.savefig(FIG / "05_cancel_frequency_bands.png", dpi=160); plt.close(fig)
 
     (ROOT / "outputs" / "findings.json").write_text(json.dumps(findings, indent=2))

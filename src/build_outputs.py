@@ -21,31 +21,31 @@ def dashboard() -> Path:
 
     fig = make_subplots(
         rows=2, cols=2, vertical_spacing=0.22, horizontal_spacing=0.12,
-        subplot_titles=("Monthly cancellation rate: headline vs adjusted", "Cancelled value by type (GBP)",
-                        "Top 10 SKUs by non-reversal cancelled value (GBP)", "Rate by country, 95% bootstrap CI (identified customers)"),
+        subplot_titles=("Monthly cancellation rate, with and without reversals", "Where the cancelled value comes from (£)",
+                        "Top 10 products by cancelled value, excluding reversals (£)", "Rate by country, with 95% confidence ranges"),
     )
-    fig.add_trace(go.Scatter(x=monthly.invoice_month, y=monthly.headline_rate_pct, name="Headline", line=dict(color=GREY, width=2)), 1, 1)
-    fig.add_trace(go.Scatter(x=monthly.invoice_month, y=monthly.adjusted_rate_pct, name="Adjusted", line=dict(color=BLUE, width=3)), 1, 1)
-    fig.add_trace(go.Bar(x=["Same-day reversals", "Other cancellations", "No customer ID"],
+    fig.add_trace(go.Scatter(x=monthly.invoice_month, y=monthly.headline_rate_pct, name="All cancellations", line=dict(color=GREY, width=2)), 1, 1)
+    fig.add_trace(go.Scatter(x=monthly.invoice_month, y=monthly.adjusted_rate_pct, name="Without reversals", line=dict(color=BLUE, width=3)), 1, 1)
+    fig.add_trace(go.Bar(x=["Reversed within 24 hours", "Other cancellations", "No customer ID"],
                          y=[kpi.reversal_24h_gbp, kpi.other_cancelled_gbp, kpi.unmatched_gbp],
                          marker_color=[RED, BLUE, GREY], showlegend=False), 1, 2)
     top = skus.head(10).iloc[::-1]
     fig.add_trace(go.Bar(y=top.description.str.title().str.slice(0, 30), x=top.other_cancelled_gbp, orientation="h",
-                         marker_color=BLUE, customdata=top.rate_pct, hovertemplate="%{y}<br>£%{x:,.0f} (%{customdata}% of SKU sales)<extra></extra>",
+                         marker_color=BLUE, customdata=top.rate_pct, hovertemplate="%{y}<br>£%{x:,.0f} (%{customdata}% of the product's sales)<extra></extra>",
                          showlegend=False), 2, 1)
     fig.add_trace(go.Bar(x=ctry.country, y=ctry.rate_pct, marker_color=BLUE, showlegend=False,
                          error_y=dict(type="data", symmetric=False, array=ctry.ci_high_pct - ctry.rate_pct, arrayminus=ctry.rate_pct - ctry.ci_low_pct)), 2, 2)
-    fig.add_trace(go.Scatter(x=ctry.country, y=ctry.rate_without_top_customer_pct, mode="markers", name="Without top canceller",
+    fig.add_trace(go.Scatter(x=ctry.country, y=ctry.rate_without_top_customer_pct, mode="markers", name="Without its top cancelling customer",
                              marker=dict(color=RED, size=10)), 2, 2)
-    fig.update_yaxes(title_text="% of gross sales", row=1, col=1)
-    fig.update_yaxes(title_text="% of identified-customer spend", row=2, col=2)
+    fig.update_yaxes(title_text="% of sales", row=1, col=1)
+    fig.update_yaxes(title_text="% of spend (customers with an ID)", row=2, col=2)
     fig.update_layout(height=820, template="simple_white", margin=dict(t=70, l=60, r=30, b=40),
                       legend=dict(orientation="h", y=-0.08), font=dict(family="Segoe UI, Arial", size=12))
     cards = [
-        (f"£{kpi.gross_sales_gbp / 1e6:.1f}m", "Gross product sales (Dec 2009 - Dec 2011)"),
-        (f"{kpi.headline_rate_pct:.2f}%", "Headline cancellation rate (by value)"),
-        (f"{kpi.reversal_share_of_cancelled_pct:.0f}%", "Of cancelled value is same-day reversals"),
-        (f"{kpi.adjusted_rate_pct:.2f}%", "Adjusted rate after removing reversals"),
+        (f"£{kpi.gross_sales_gbp / 1e6:.1f}m", "Product sales, Dec 2009 to Dec 2011"),
+        (f"{kpi.headline_rate_pct:.2f}%", "Overall cancellation rate (by value)"),
+        (f"{kpi.reversal_share_of_cancelled_pct:.0f}%", "Of the cancelled value is orders reversed within 24 hours"),
+        (f"{kpi.adjusted_rate_pct:.2f}%", "Cancellation rate once reversals are left out"),
     ]
     card_html = "".join(f'<div class="card"><b>{v}</b><span>{t}</span></div>' for v, t in cards)
     html = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -56,11 +56,11 @@ h1{{font-size:22px;margin:0 0 4px}}p.sub{{margin:0 0 16px;color:#6b7280}}
 .card{{border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px}}.card b{{display:block;font-size:26px}}.card span{{font-size:12px;color:#6b7280}}
 .note{{font-size:12px;color:#6b7280}}</style></head><body>
 <h1>Retail cancellation leakage</h1>
-<p class="sub">UCI Online Retail II, one UK giftware retailer, Dec 2009 - Dec 2011. Product lines only; see README for cleaning rules.</p>
+<p class="sub">Real sales from one UK online gift retailer (UCI Online Retail II), Dec 2009 to Dec 2011. Products only; the README lists the cleaning rules.</p>
 <div class="cards">{card_html}</div>
 {fig.to_html(full_html=False, include_plotlyjs="cdn")}
-<p class="note">Adjusted rate = (non-reversal cancellations) / (gross sales minus reversed sales). A reversal is a cancellation of the same customer, SKU and quantity within 24 hours of the sale.
-Cancellation reasons are not in the data, so cancellations include returns, order-entry corrections and cancelled orders.</p>
+<p class="note">Rate without reversals = cancellations other than reversals ÷ (sales minus the reversed sales). A reversal is when the same customer cancels the same product and quantity within 24 hours of buying it.
+The data gives no reasons for cancelling, so cancellations include returns, order-entry corrections and cancelled orders.</p>
 </body></html>"""
     out = ROOT / "reports" / "dashboard.html"
     out.write_text(html, encoding="utf-8")
