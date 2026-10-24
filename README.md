@@ -5,6 +5,8 @@
 An SQL + Python analysis of two years of transactions from a UK online gift-ware retailer (UCI *Online Retail II*, 1.07 million raw rows).
 **Business question:** how much revenue is lost to cancellations, where does it come from, and which of it can the business actually act on?
 
+**Live dashboard:** _link added only after the GitHub Pages deployment is verified._ · **Power BI report:** _added after the report is built and checked._
+
 ![Dashboard](reports/dashboard_screenshot.png)
 
 ## Findings
@@ -62,17 +64,30 @@ cd retail-cancellation-leakage
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python run_all.py          # download -> load -> SQL -> analysis -> dashboard + workbook
-pytest -q                  # 16 tests
+pytest -q                  # 22 tests
 ```
 
 Optional, to regenerate the dashboard screenshot: `pip install playwright && playwright install chromium && python scripts/screenshot_dashboard.py`.
 
+## How it is published
+
+`.github/workflows/pages.yml` downloads the original UCI file (checked against its SHA-256), runs `python run_all.py`, runs all 22 tests, builds the landing page with `scripts/build_site.py`, and deploys to GitHub Pages only if every step passed. A failed run leaves the last good site online.
+
+```mermaid
+flowchart LR
+  U[UCI zip, SHA-256 pinned] --> L[load_data.py] --> C[01_clean.sql] --> K[02_classify_cancellations.sql] --> M[03_metrics.sql]
+  M --> A[analysis.py] --> S[build_site.py]
+  M --> O[build_outputs.py] --> S
+  S -->|only if 22 tests pass| P[GitHub Pages]
+```
+
 ## Validation
 
-`pytest -q` runs 16 tests, all passing at the last commit:
+`pytest -q` runs 22 checks: 9 SQL logic, 7 real-data and 6 star-schema tests. The release candidate passed all 22 locally; the Pages workflow will rerun them after rebuilding the database:
 
 - **SQL logic on a hand-built dataset** (`tests/test_sql_logic.py`, 9 tests): sheet-overlap dedupe, exclusion of non-product, zero-price and adjustment rows, `line_value` arithmetic, reversal classification, the two negative cases (quantity mismatch and cancellation before sale must not count as reversals), and the 24-hour boundary (23 h 59 min and exactly 24 h are reversals; 24 h 1 min is not). These also run in CI.
 - **Reconciliation on the real data** (`tests/test_real_data.py`, 7 tests): every raw row is accounted for; sale and cancellation totals match an independent pandas re-implementation of the cleaning to 1e-9; classes sum to the cancelled total; no invalid values survive cleaning; overlap invoices are kept once; the KPI table is internally consistent. These are skipped automatically if `data/retail.db` has not been built.
+- **Power BI star schema** (`tests/test_star_schema.py`, 6 tests): exported table counts, keys, customer ID types, reconciliation and DAX KPI arithmetic.
 
 ## Limitations
 
@@ -81,7 +96,7 @@ Optional, to regenerate the dashboard screenshot: `pip install playwright && pla
 - One retailer, December 2009 to December 2011, nominal GBP. Findings describe this business in that period, not retail in general.
 - Cancelled value is revenue at list price on the invoice, not margin; nothing here estimates profit impact or savings.
 - Customer country is taken as the country on the customer's lines; a few customers appear under more than one country.
-- Power BI Desktop is not installed on the machine used to build this, so there is no `.pbix`. The dashboard is a self-contained Plotly HTML file and the Excel workbook holds the summary tables (the "(formula)" columns are live Excel formulas).
+- No `.pbix` is included yet. The repository provides a Power BI guide and star-schema CSV exporter; the Plotly dashboard and Excel workbook are available now.
 - The raw workbook and the SQLite database are not committed (45 MB and about 300 MB); `run_all.py` rebuilds them.
 
 ## Layout
@@ -89,10 +104,12 @@ Optional, to regenerate the dashboard screenshot: `pip install playwright && pla
 ```
 sql/        01_clean.sql  02_classify_cancellations.sql  03_metrics.sql
 src/        load_data.py  run_sql.py  analysis.py  build_outputs.py
-scripts/    download_data.py  screenshot_dashboard.py
-tests/      test_sql_logic.py  test_real_data.py
+scripts/    download_data.py  screenshot_dashboard.py  build_site.py  site_template.html  export_star_schema.py
+tests/      test_sql_logic.py  test_real_data.py  test_star_schema.py
 outputs/    csv/ (query results)  findings.json  cancellation_summary.xlsx
 reports/    dashboard.html  dashboard_screenshot.png  figures/
+docs/       powerbi-guide.md
+.github/    workflows/ (tests.yml, pages.yml)
 ```
 
 Dataset: Chen, D. (2012). Online Retail II [Dataset]. UCI Machine Learning Repository. CC BY 4.0. Code: MIT.

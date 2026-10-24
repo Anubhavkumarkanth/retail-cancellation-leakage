@@ -1,0 +1,53 @@
+# Rebuilds the analysis from the original UCI file, runs all tests,
+# assembles the site, and deploys to GitHub Pages only if every step passed. A failed run leaves the last good site live.
+# Action major versions checked on 2026-10-24; review before future upgrades.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      # The zip is pinned by SHA-256 in scripts/download_data.py; caching it avoids re-downloading 45 MB on every run.
+      # Trade-off: a cached zip hides an upstream change, so clear the cache occasionally (Actions > Caches).
+      - uses: actions/cache@v6
+        with:
+          path: data/raw/online_retail_ii.zip
+          key: uci-online-retail-ii-572e36277c2390fb
+      - run: pip install -r requirements.txt
+      - run: python run_all.py
+      # All 22 tests run here: 9 SQL logic, 7 real-data and 6 star-schema tests, because run_all.py built data/retail.db.
+      - run: python -m pytest -q
+      - run: python scripts/build_site.py . _site
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

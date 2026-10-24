@@ -9,5 +9,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      # Real-data tests skip themselves because the 45 MB dataset is not committed.
+      # Only the logic tests run here: the 45 MB dataset is not committed. pages.yml rebuilds it and runs the full suite.
       - run: pytest -q tests/test_sql_logic.py
