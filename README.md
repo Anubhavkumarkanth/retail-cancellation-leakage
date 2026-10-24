@@ -5,7 +5,7 @@
 An SQL + Python analysis of two years of transactions from a UK online gift-ware retailer (UCI *Online Retail II*, 1.07 million raw rows).
 **Business question:** how much revenue is lost to cancellations, where does it come from, and which of it can the business actually act on?
 
-**Live dashboard:** _link added only after the GitHub Pages deployment is verified._ · **Power BI report:** _added after the report is built and checked._
+**Live dashboard:** [Open the published dashboard](https://anubhavkumarkanth.github.io/retail-cancellation-leakage/). · **Power BI report:** _not included yet; the guide and CSV exporter are available._
 
 ![Dashboard](reports/dashboard_screenshot.png)
 
