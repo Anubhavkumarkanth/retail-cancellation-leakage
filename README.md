@@ -7,7 +7,7 @@ An SQL and Python analysis of two years of real sales from a UK online gift reta
 
 **Short answer:** about half of the cancelled value is orders reversed within 24 hours (same customer, same product, same quantity). Counted separately, the cancellation rate falls from 3.65% to 1.88%.
 
-**Live dashboard:** [Open the published dashboard](https://anubhavkumarkanth.github.io/retail-cancellation-leakage/). · **Power BI:** _no report file yet; a build guide and a data export script are included._
+**Live dashboard:** [Open the published dashboard](https://anubhavkumarkanth.github.io/retail-cancellation-leakage/). · **Power BI:** [Download the report (.pbix, 17 MB)](https://github.com/Anubhavkumarkanth/retail-cancellation-leakage/releases/latest/download/retail-cancellation-leakage.pbix) or [see the pages](#power-bi-report).
 
 ![Dashboard](reports/dashboard_screenshot.png)
 
@@ -34,6 +34,27 @@ Each one links back to a finding above. None comes with a savings estimate, beca
 3. **Look first at the few products with cancellation rates above 20%** (cherry lights, fairy-cake flannel and fridge magnets), before the big sellers, whose rates are roughly 3% to 6% (finding 4). The data cannot say why customers cancelled. Wrong listings, damaged packaging and items running out of stock are ideas to check, not conclusions.
 4. **Don't single out "serial cancellers".** Customers cancel about the same share of what they spend however often they cancel, so frequent cancellers are simply big customers (finding 6).
 5. **Don't act on country differences yet.** Spain and France each reflect one customer account (finding 5). Talking to those two customers would answer more than any country-wide policy.
+
+## Power BI report
+
+The same analysis as a four-page Power BI report, built on a star schema:
+- **Tables:** one fact table of product lines and three dimension tables (date, product, customer). The tables come from `scripts/export_star_schema.py`, and [docs/powerbi-guide.md](docs/powerbi-guide.md) shows how the report is built.
+- **Measures:** gross sales, cancelled value, reversals, and the headline and adjusted rates, written in DAX.
+- **Check:** with no filters, the overview cards match the pipeline's figures exactly: £19,699,785 gross sales, £719,656 cancelled, 3.65% headline rate, 49.5% reversal share and 1.88% adjusted rate. This was checked in Power BI Desktop on 26 Oct 2026.
+
+[Download the .pbix](https://github.com/Anubhavkumarkanth/retail-cancellation-leakage/releases/latest/download/retail-cancellation-leakage.pbix) (17 MB, from the [latest release](https://github.com/Anubhavkumarkanth/retail-cancellation-leakage/releases/latest)). It opens in Power BI Desktop, which is free for Windows, with the data already inside.
+
+**Overview:** the five headline figures.
+![Power BI overview page](reports/powerbi/powerbi-1-overview.png)
+
+**Monthly:** headline and adjusted rates by month. The Jan 2011 and Dec 2011 spikes disappear once reversals are counted separately (finding 2).
+![Power BI monthly page](reports/powerbi/powerbi-2-monthly.png)
+
+**Products:** cancelled value against sales for each product, and the 15 products with the most cancelled value once reversals are left out (finding 4).
+![Power BI products page](reports/powerbi/powerbi-3-products.png)
+
+**Countries:** the adjusted rate by country, with a country filter. Most of the highest bars rest on very few customers. Nigeria's bar is above 100% because its one customer bought £113 and cancelled £147. A cancellation can refer to an order placed before the data starts. The USA rests on 8 customers. Spain and France are explained in finding 5.
+![Power BI countries page](reports/powerbi/powerbi-4-countries.png)
 
 ## Method
 
@@ -98,7 +119,7 @@ flowchart LR
 - One retailer, December 2009 to December 2011, in pounds not adjusted for inflation. The findings describe this business in that period, not retail in general.
 - Cancelled value is the price on the invoice, not profit; nothing here estimates lost profit or savings.
 - A customer's country is the country on their order lines; a few customers appear under more than one country.
-- There is no Power BI report file (`.pbix`) yet. The repository has a build guide and a script that exports the data for Power BI; the interactive dashboard and Excel workbook are available now.
+- The Power BI file is attached to a GitHub release rather than committed, because it is 17 MB. Its data sources point to the folder where it was built. To refresh it, run `scripts/export_star_schema.py` and point the four sources at your own `out/powerbi` folder.
 - The raw workbook and the SQLite database are not committed (45 MB and about 300 MB); `run_all.py` rebuilds them.
 
 ## Layout
@@ -109,7 +130,7 @@ src/        load_data.py  run_sql.py  analysis.py  build_outputs.py
 scripts/    download_data.py  screenshot_dashboard.py  build_site.py  site_template.html  export_star_schema.py
 tests/      test_sql_logic.py  test_real_data.py  test_star_schema.py
 outputs/    csv/ (query results)  findings.json  cancellation_summary.xlsx
-reports/    dashboard.html  dashboard_screenshot.png  figures/
+reports/    dashboard.html  dashboard_screenshot.png  figures/  powerbi/ (report page screenshots)
 docs/       powerbi-guide.md
 .github/    workflows/ (tests.yml, pages.yml)
 ```
