@@ -7,3 +7,5 @@ __pycache__/
 
 _site/
 out/powerbi/
+# Power BI report: published as a GitHub release asset, not committed
+reports/*.pbix
