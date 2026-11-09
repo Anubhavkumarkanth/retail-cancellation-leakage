@@ -1,25 +1,37 @@
-"""Reconciliation checks on the real dataset. Skipped when data/retail.db has not been built."""
+"""Reconciliation checks on the real dataset. Skipped when the MySQL database at DATABASE_URL has not been loaded."""
+import os
 import re
-import sqlite3
+import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from sqlalchemy import inspect
 
 ROOT = Path(__file__).resolve().parents[1]
-DB = ROOT / "data" / "retail.db"
-pytestmark = pytest.mark.skipif(not DB.exists(), reason="run `python src/load_data.py` first")
+sys.path.insert(0, str(ROOT / "src"))
+from load_data import engine  # noqa: E402
+
+
+def _loaded() -> bool:
+    try:
+        return "DATABASE_URL" in os.environ and inspect(engine()).has_table("raw_transactions")
+    except Exception:  # server not running: same as the database file not being built before
+        return False
+
+
+pytestmark = pytest.mark.skipif(not _loaded(), reason="set DATABASE_URL and run `python src/load_data.py` first")
 
 
 @pytest.fixture(scope="module")
 def con():
-    c = sqlite3.connect(DB)
+    c = engine().connect()
     yield c
     c.close()
 
 
 def test_every_raw_row_is_accounted_for(con):
-    raw = con.execute("SELECT COUNT(*) FROM raw_transactions").fetchone()[0]
+    raw = con.exec_driver_sql("SELECT COUNT(*) FROM raw_transactions").fetchone()[0]
     fates = pd.read_csv(ROOT / "outputs" / "csv" / "data_quality_fates.csv")
     assert fates["raw_rows"].sum() == raw
 
@@ -33,7 +45,7 @@ def test_clean_lines_match_independent_pandas_logic(con):
     is_c = raw.invoice.str.startswith("C")
     sales = raw[~is_c & ~raw.invoice.str.startswith("A") & (raw.quantity > 0)]
     canc = raw[is_c & (raw.quantity < 0)]
-    sql_sales, sql_canc = con.execute(
+    sql_sales, sql_canc = con.exec_driver_sql(
         "SELECT SUM(CASE WHEN line_type='sale' THEN line_value END), SUM(CASE WHEN line_type='cancellation' THEN line_value END) FROM clean_lines"
     ).fetchone()
     assert sql_sales == pytest.approx((sales.quantity * sales.unit_price).sum(), rel=1e-9)
@@ -41,13 +53,13 @@ def test_clean_lines_match_independent_pandas_logic(con):
 
 
 def test_cancellation_classes_sum_to_total(con):
-    total = con.execute("SELECT SUM(line_value) FROM clean_lines WHERE line_type='cancellation'").fetchone()[0]
-    by_class = con.execute("SELECT SUM(line_value) FROM cancellation_class").fetchone()[0]
+    total = con.exec_driver_sql("SELECT SUM(line_value) FROM clean_lines WHERE line_type='cancellation'").fetchone()[0]
+    by_class = con.exec_driver_sql("SELECT SUM(line_value) FROM cancellation_class").fetchone()[0]
     assert by_class == pytest.approx(total)
 
 
 def test_no_invalid_values_in_clean_lines(con):
-    bad = con.execute(
+    bad = con.exec_driver_sql(
         "SELECT COUNT(*) FROM clean_lines WHERE unit_price <= 0 OR line_value <= 0 OR line_type IS NULL OR invoice_date IS NULL"
     ).fetchone()[0]
     assert bad == 0
@@ -57,10 +69,10 @@ def test_invoices_in_both_sheets_are_kept_once(con):
     """Invoices present in both workbook sheets must keep only the first sheet's lines."""
     both = ("SELECT DISTINCT invoice FROM raw_transactions WHERE source_sheet = 'Year 2010-2011' "
             "AND invoice IN (SELECT invoice FROM raw_transactions WHERE source_sheet = 'Year 2009-2010')")
-    clean = con.execute(f"SELECT COUNT(*) FROM clean_lines WHERE invoice IN ({both})").fetchone()[0]
-    sheet_a = con.execute(
+    clean = con.exec_driver_sql(f"SELECT COUNT(*) FROM clean_lines WHERE invoice IN ({both})").fetchone()[0]
+    sheet_a = con.exec_driver_sql(
         f"SELECT COUNT(*) FROM raw_transactions WHERE source_sheet = 'Year 2009-2010' AND invoice IN ({both}) "
-        "AND unit_price > 0 AND stock_code GLOB '[0-9][0-9][0-9][0-9][0-9]*' AND invoice NOT LIKE 'A%' "
+        "AND unit_price > 0 AND stock_code REGEXP '^[0-9]{5}' AND invoice NOT LIKE 'A%' "
         "AND ((invoice LIKE 'C%' AND quantity < 0) OR (invoice NOT LIKE 'C%' AND quantity > 0))"
     ).fetchone()[0]
     assert clean == sheet_a > 0

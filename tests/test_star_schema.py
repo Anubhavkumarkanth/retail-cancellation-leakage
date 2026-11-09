@@ -1,52 +1,61 @@
-"""Checks that the star-schema CSVs reconcile with the SQLite tables and that
-the planned DAX measures reproduce the published KPIs. Reads the repo database read-only.
+"""Checks that the star-schema CSVs reconcile with the MySQL tables and that
+the planned DAX measures reproduce the published KPIs. Reads the database at DATABASE_URL read-only.
 
-Run: python -m pytest tests/test_star_schema.py  (RETAIL_DB and STAR_OUT may override paths)
+Run: python -m pytest tests/test_star_schema.py  (STAR_OUT may override the output folder)
 """
 import os
-import sqlite3
 import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
+from sqlalchemy import inspect
 
 HERE = Path(__file__).resolve().parents[1]
-DB = Path(os.environ.get("RETAIL_DB", HERE / "data" / "retail.db"))
 OUT = Path(os.environ.get("STAR_OUT", HERE / "out" / "powerbi"))
 sys.path.insert(0, str(HERE / "scripts"))
 from export_star_schema import export  # noqa: E402
+from load_data import engine  # noqa: E402  (export_star_schema put src/ on the path)
 
-pytestmark = pytest.mark.skipif(not DB.exists(), reason="build data/retail.db first")
+
+def _built() -> bool:
+    try:
+        return "DATABASE_URL" in os.environ and inspect(engine()).has_table("cancellation_class")
+    except Exception:  # server not running: same as the database file not being built before
+        return False
+
+
+pytestmark = pytest.mark.skipif(not _built(), reason="set DATABASE_URL and run run_all.py first")
 
 
 @pytest.fixture(scope="module")
 def star():
-    export(DB, OUT)
+    export(OUT)
     return {n: pd.read_csv(OUT / f"{n}.csv") for n in ("fact_lines", "dim_date", "dim_product", "dim_customer")}
 
 
 @pytest.fixture(scope="module")
 def con():
-    c = sqlite3.connect(f"file:{DB.as_posix()}?mode=ro", uri=True)
+    c = engine().connect()
+    c.exec_driver_sql("SET SESSION TRANSACTION READ ONLY")
     yield c
     c.close()
 
 
 def test_fact_has_one_row_per_clean_line(star, con):
-    assert len(star["fact_lines"]) == con.execute("SELECT COUNT(*) FROM clean_lines").fetchone()[0]
+    assert len(star["fact_lines"]) == con.exec_driver_sql("SELECT COUNT(*) FROM clean_lines").fetchone()[0]
     assert star["fact_lines"]["line_id"].is_unique
 
 
 def test_values_reconcile_by_line_type(star, con):
     got = star["fact_lines"].groupby("line_type")["line_value"].sum()
-    for line_type, expected in con.execute("SELECT line_type, SUM(line_value) FROM clean_lines GROUP BY 1"):
+    for line_type, expected in con.exec_driver_sql("SELECT line_type, SUM(line_value) FROM clean_lines GROUP BY 1"):
         assert got[line_type] == pytest.approx(expected, rel=1e-9)
 
 
 def test_values_reconcile_by_cancel_class(star, con):
     got = star["fact_lines"].groupby("cancel_class")["line_value"].sum()
-    for cls, expected in con.execute("SELECT cancel_class, SUM(line_value) FROM cancellation_class GROUP BY 1"):
+    for cls, expected in con.exec_driver_sql("SELECT cancel_class, SUM(line_value) FROM cancellation_class GROUP BY 1"):
         assert got[cls] == pytest.approx(expected, rel=1e-9)
     assert star["fact_lines"].loc[star["fact_lines"].line_type == "sale", "cancel_class"].isna().all()
 

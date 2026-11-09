@@ -1,28 +1,31 @@
-"""Export a Power BI star schema from data/retail.db.
+"""Export a Power BI star schema from the MySQL database at DATABASE_URL.
 
-Opens the database read-only and writes fact_lines, dim_date, dim_product and dim_customer as CSV.
-Usage: python scripts/export_star_schema.py data/retail.db out/powerbi
+Opens a read-only session and writes fact_lines, dim_date, dim_product and dim_customer as CSV.
+Usage: python scripts/export_star_schema.py out/powerbi
 """
-import sqlite3
 import sys
 from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from load_data import engine  # noqa: E402
 
-def export(db: Path, out: Path) -> dict[str, int]:
+
+def export(out: Path) -> dict[str, int]:
     out.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True)
+    con = engine().connect()
+    con.exec_driver_sql("SET SESSION TRANSACTION READ ONLY")
     fact = pd.read_sql(
-        """SELECT l.rowid AS line_id,
-                  CAST(strftime('%Y%m%d', l.invoice_date) AS INTEGER) AS date_key,
+        """SELECT l.line_id,
+                  CAST(DATE_FORMAT(l.invoice_date, '%Y%m%d') AS SIGNED) AS date_key,
                   l.invoice, l.stock_code, l.customer_id, l.country, l.line_type, c.cancel_class,
                   l.quantity, l.unit_price, l.line_value
            FROM clean_lines l
-           LEFT JOIN cancellation_class c ON c.line_id = l.rowid""",
+           LEFT JOIN cancellation_class c ON c.line_id = l.line_id""",
         con,
     )
-    # Stored as REAL in SQLite because pandas used NaN for missing IDs; the IDs are whole numbers.
+    # Stored as DOUBLE because pandas used NaN for missing IDs; the IDs are whole numbers.
     fact["customer_id"] = fact["customer_id"].astype("Int64")
 
     first, last = (pd.to_datetime(str(k), format="%Y%m%d") for k in (fact.date_key.min(), fact.date_key.max()))
@@ -39,7 +42,7 @@ def export(db: Path, out: Path) -> dict[str, int]:
         """SELECT customer_id, country FROM (
                SELECT customer_id, country,
                       ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY COUNT(*) DESC, country) AS rn
-               FROM clean_lines WHERE customer_id IS NOT NULL GROUP BY customer_id, country)
+               FROM clean_lines WHERE customer_id IS NOT NULL GROUP BY customer_id, country) ranked
            WHERE rn = 1""",
         con,
     )
@@ -53,5 +56,5 @@ def export(db: Path, out: Path) -> dict[str, int]:
 
 
 if __name__ == "__main__":
-    for name, rows in export(Path(sys.argv[1]), Path(sys.argv[2])).items():
+    for name, rows in export(Path(sys.argv[1])).items():
         print(f"{name}: {rows:,} rows")

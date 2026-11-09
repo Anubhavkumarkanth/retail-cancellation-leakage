@@ -3,7 +3,8 @@
 
 DROP TABLE IF EXISTS clean_lines;
 
-CREATE TABLE clean_lines AS
+-- line_id numbers the rows, so cancellation_class and the Power BI export can point back to a line.
+CREATE TABLE clean_lines (line_id INT AUTO_INCREMENT PRIMARY KEY) AS
 WITH first_sheet_invoices AS (
     -- Rule 1: the two workbook sheets overlap on 2010-12-01..2010-12-09. Keep each invoice once,
     -- from the earlier sheet.
@@ -32,7 +33,7 @@ SELECT
     ABS(quantity * unit_price)                       AS line_value
 FROM deduped
 WHERE unit_price > 0                                  -- Rule 2: drop zero/negative-price rows (stock write-offs, bad-debt adjustments)
-  AND stock_code GLOB '[0-9][0-9][0-9][0-9][0-9]*'    -- Rule 3: real products only (drops POST, DOT, M, D, BANK CHARGES, AMAZONFEE, gift vouchers, tests)
+  AND stock_code REGEXP '^[0-9]{5}'                  -- Rule 3: real products only (drops POST, DOT, M, D, BANK CHARGES, AMAZONFEE, gift vouchers, tests)
   AND (
         (invoice LIKE 'C%' AND quantity < 0)          -- Rule 4: cancellations are 'C' invoices with negative quantity
      OR (invoice NOT LIKE 'C%' AND invoice NOT LIKE 'A%' AND quantity > 0)

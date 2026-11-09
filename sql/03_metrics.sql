@@ -116,13 +116,15 @@ SELECT b.customer_id, b.country, b.orders, ROUND(b.spend, 2) AS spend_gbp,
 FROM (SELECT customer_id, MAX(country) AS country, COUNT(DISTINCT invoice) AS orders, SUM(line_value) AS spend
       FROM clean_lines WHERE line_type = 'sale' AND customer_id IS NOT NULL GROUP BY 1) b
 LEFT JOIN (SELECT customer_id, COUNT(DISTINCT invoice) AS cancel_invoices, SUM(line_value) AS other_gbp
-           FROM cancellation_class WHERE cancel_class = 'other' GROUP BY 1) p USING (customer_id);
+           FROM cancellation_class WHERE cancel_class = 'other' GROUP BY 1) p USING (customer_id)
+-- Fixed order: the bootstrap in analysis.py resamples by row position.
+ORDER BY b.customer_id;
 
 -- name: data_quality_fates
 SELECT CASE
          WHEN source_sheet = 'Year 2010-2011' AND invoice IN (SELECT invoice FROM raw_transactions WHERE source_sheet = 'Year 2009-2010') THEN '1 duplicate (sheet overlap)'
          WHEN unit_price <= 0 THEN '2 price <= 0'
-         WHEN stock_code NOT GLOB '[0-9][0-9][0-9][0-9][0-9]*' THEN '3 non-product code'
+         WHEN stock_code NOT REGEXP '^[0-9]{5}' THEN '3 non-product code'
          WHEN (invoice LIKE 'C%' AND quantity < 0) OR (invoice NOT LIKE 'C%' AND invoice NOT LIKE 'A%' AND quantity > 0) THEN '5 kept'
          ELSE '4 other (adjustments / inconsistent sign)'
        END AS fate,

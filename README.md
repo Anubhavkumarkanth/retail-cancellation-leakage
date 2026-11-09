@@ -59,7 +59,7 @@ The same analysis as a four-page Power BI report, built on a star schema:
 ## Method
 
 1. **Data.** UCI Online Retail II, CC BY 4.0, https://archive.ics.uci.edu/dataset/502/online+retail+ii. Real transactions, not synthetic. The download is checked against a fixed SHA-256 fingerprint in `scripts/download_data.py`, so a changed file is caught.
-2. **Load.** `src/load_data.py` copies both workbook sheets into a SQLite database unchanged (`raw_transactions`).
+2. **Load.** `src/load_data.py` copies both workbook sheets into a MySQL 8 database unchanged (`raw_transactions`).
 3. **Clean** (`sql/01_clean.sql`). Every rule comes from first examining the raw table:
 
    | Raw rows | What happens | Why |
@@ -79,16 +79,37 @@ The same analysis as a four-page Power BI report, built on a star schema:
 
 ## Run it
 
-Python 3.10+ (developed on 3.12). The first run takes about two minutes because the 45 MB Excel workbook is slow to read.
+Python 3.10+ (developed on 3.12) and MySQL 8. The first run takes about three minutes: the 45 MB Excel workbook is slow to read, and about a million rows go into MySQL.
+
+**1. Start MySQL.** With Docker, one command starts MySQL 8 with an empty `retail` database, and a second adds the test database (wait about 20 seconds after the first, while MySQL starts):
+
+```bash
+docker run -d --name retail-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=change-me -e MYSQL_DATABASE=retail mysql:8
+docker exec retail-mysql mysql -uroot -pchange-me -e "CREATE DATABASE retail_test"
+```
+
+Already have MySQL 8 installed? Create the two databases yourself (`CREATE DATABASE retail; CREATE DATABASE retail_test;`) and use your own user and password in the URLs below. If something else already uses port 3306, change the first `3306` in the docker command and in the URLs.
+
+**2. Point the project at it.** The connection settings live in two environment variables; `.env.example` explains both. `TEST_DATABASE_URL` must be a separate database, because the logic tests drop and rebuild their tables.
+
+```bash
+export DATABASE_URL="mysql+pymysql://root:change-me@127.0.0.1:3306/retail"
+export TEST_DATABASE_URL="mysql+pymysql://root:change-me@127.0.0.1:3306/retail_test"
+# Windows PowerShell: $env:DATABASE_URL="..."; $env:TEST_DATABASE_URL="..."
+```
+
+**3. Load the data and run everything.**
 
 ```bash
 git clone https://github.com/Anubhavkumarkanth/retail-cancellation-leakage.git
 cd retail-cancellation-leakage
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-python run_all.py          # download -> load -> SQL -> analysis -> dashboard + workbook
+python run_all.py          # download -> load into MySQL -> SQL -> analysis -> dashboard + workbook
 pytest -q                  # 22 tests
 ```
+
+The project talks to MySQL through PyMySQL, a driver written in plain Python: it installs with `pip` on any computer, while mysqlclient (the more popular, faster driver) needs a C compiler and MySQL's client libraries. pandas writes tables to MySQL only through SQLAlchemy, so that is installed too.
 
 Optional, to regenerate the dashboard screenshot: `pip install playwright && playwright install chromium && python scripts/screenshot_dashboard.py`.
 
@@ -109,7 +130,7 @@ flowchart LR
 `pytest -q` runs 22 tests: 9 on the SQL logic, 7 on the real data and 6 on the Power BI export. The Pages workflow runs all 22 before every deploy, and the site is published only if they pass.
 
 - **SQL logic on a small hand-built dataset** (`tests/test_sql_logic.py`, 9 tests): removing the sheet overlap; excluding non-product, zero-price and adjustment rows; line value arithmetic; reversal classification; two cases that must not count as reversals (a quantity mismatch, and a cancellation before the sale); and the 24-hour boundary (23 h 59 min and exactly 24 h count as reversals; 24 h 1 min does not). These also run on every push and pull request.
-- **Checks on the real data** (`tests/test_real_data.py`, 7 tests): every raw row is accounted for; sale and cancellation totals match a separate pandas version of the cleaning to within 1e-9; the categories add up to the cancelled total; no invalid values survive cleaning; overlapping invoices are kept once; the summary table is internally consistent. These skip themselves if `data/retail.db` has not been built.
+- **Checks on the real data** (`tests/test_real_data.py`, 7 tests): every raw row is accounted for; sale and cancellation totals match a separate pandas version of the cleaning to within 1e-9; the categories add up to the cancelled total; no invalid values survive cleaning; overlapping invoices are kept once; the summary table is internally consistent. These skip themselves if the MySQL database at `DATABASE_URL` has not been loaded.
 - **Power BI export** (`tests/test_star_schema.py`, 6 tests): the exported star-schema tables have the right row counts, keys and customer ID types, they reconcile with the totals, and the DAX measure arithmetic reproduces the headline figures.
 
 ## Limitations
@@ -120,7 +141,7 @@ flowchart LR
 - Cancelled value is the price on the invoice, not profit; nothing here estimates lost profit or savings.
 - A customer's country is the country on their order lines; a few customers appear under more than one country.
 - The Power BI file is attached to a GitHub release rather than committed, because it is 17 MB. Its data sources point to the folder where it was built. To refresh it, run `scripts/export_star_schema.py` and point the four sources at your own `out/powerbi` folder.
-- The raw workbook and the SQLite database are not committed (45 MB and about 300 MB); `run_all.py` rebuilds them.
+- The raw workbook (45 MB) and the MySQL tables are not committed; `run_all.py` rebuilds them.
 
 ## Layout
 
