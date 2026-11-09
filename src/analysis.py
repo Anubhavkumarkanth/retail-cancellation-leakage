@@ -1,6 +1,5 @@
-"""Statistics and figures for the cancellation analysis. Reads outputs/csv/*.csv and data/retail.db."""
+"""Statistics and figures for the cancellation analysis. Reads outputs/csv/*.csv and the MySQL database."""
 import json
-import sqlite3
 from pathlib import Path
 
 import matplotlib
@@ -9,6 +8,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+from load_data import engine
 
 ROOT = Path(__file__).resolve().parents[1]
 CSV = ROOT / "outputs" / "csv"
@@ -86,12 +87,12 @@ def main() -> dict:
     findings["country_bootstrap"] = rows
 
     # --- which single customer explains each high-rate month
-    con = sqlite3.connect(ROOT / "data" / "retail.db")
+    con = engine()
     spikes = []
     for m in monthly.loc[monthly["adjusted_rate_pct"] > 3, "invoice_month"]:
         d = pd.read_sql(
             "SELECT customer_id, SUM(line_value) v FROM cancellation_class "
-            "WHERE invoice_month = ? AND cancel_class != 'reversal_24h' GROUP BY 1 ORDER BY v DESC", con, params=(m,))
+            "WHERE invoice_month = %s AND cancel_class != 'reversal_24h' GROUP BY 1 ORDER BY v DESC", con, params=(m,))
         spikes.append({"month": m, "top_customer_share_pct": round(float(d["v"].iloc[0] / d["v"].sum() * 100), 1),
                        "adjusted_rate_pct": float(monthly.loc[monthly.invoice_month == m, "adjusted_rate_pct"].iloc[0])})
     findings["high_rate_months"] = spikes

@@ -6,7 +6,7 @@ DROP TABLE IF EXISTS cancellation_class;
 
 CREATE TABLE cancellation_class AS
 SELECT
-    c.rowid                                        AS line_id,
+    c.line_id,
     c.invoice, c.invoice_date, c.invoice_month, c.customer_id, c.country,
     c.stock_code, c.description, c.quantity, c.line_value,
     CASE
@@ -18,7 +18,7 @@ SELECT
               AND s.stock_code  = c.stock_code
               AND s.quantity    = -c.quantity
               AND s.invoice_date <= c.invoice_date
-              AND julianday(c.invoice_date) - julianday(s.invoice_date) <= 1.0
+              AND TIMESTAMPDIFF(SECOND, s.invoice_date, c.invoice_date) <= 86400
         ) THEN 'reversal_24h'
         ELSE 'other'
     END                                            AS cancel_class

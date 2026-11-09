@@ -1,11 +1,16 @@
 """SQL logic checked on a tiny hand-built dataset where every expected value is known."""
-import sqlite3
+import os
+import sys
 from pathlib import Path
 
 import pandas as pd
 import pytest
 
-SQL = Path(__file__).resolve().parents[1] / "sql"
+ROOT = Path(__file__).resolve().parents[1]
+SQL = ROOT / "sql"
+sys.path.insert(0, str(ROOT / "src"))
+from load_data import engine, write_raw  # noqa: E402
+from run_sql import run_script  # noqa: E402
 A, B = "Year 2009-2010", "Year 2010-2011"
 
 ROWS = [
@@ -26,46 +31,51 @@ ROWS = [
 
 @pytest.fixture()
 def con():
-    c = sqlite3.connect(":memory:")
+    url = os.environ["TEST_DATABASE_URL"]
+    # The fixture drops and rebuilds the pipeline tables, so it must never point at the real data.
+    assert url != os.environ.get("DATABASE_URL"), "TEST_DATABASE_URL must be a separate, throwaway database"
+    eng = engine(url)
     df = pd.DataFrame(ROWS, columns=["invoice", "stock_code", "description", "quantity", "invoice_date",
                                      "unit_price", "customer_id", "country", "source_sheet"])
-    df.to_sql("raw_transactions", c, index=False)
-    c.executescript((SQL / "01_clean.sql").read_text())
-    c.executescript((SQL / "02_classify_cancellations.sql").read_text())
+    write_raw(df, eng)
+    c = eng.connect()
+    run_script(c, SQL / "01_clean.sql")
+    run_script(c, SQL / "02_classify_cancellations.sql")
     yield c
     c.close()
+    eng.dispose()
 
 
 def test_cleaning_keeps_only_product_sales_and_cancellations(con):
-    kept = {r[0] for r in con.execute("SELECT invoice FROM clean_lines")}
+    kept = {r[0] for r in con.exec_driver_sql("SELECT invoice FROM clean_lines")}
     assert kept == {"1001", "C1001", "1002", "C1002", "1006", "C1007"}
 
 
 def test_sheet_overlap_is_deduplicated(con):
-    assert con.execute("SELECT COUNT(*) FROM clean_lines WHERE invoice = '1006'").fetchone()[0] == 1
+    assert con.exec_driver_sql("SELECT COUNT(*) FROM clean_lines WHERE invoice = '1006'").fetchone()[0] == 1
 
 
 def test_line_value_is_absolute_quantity_times_price(con):
-    assert con.execute("SELECT line_value FROM clean_lines WHERE invoice = 'C1001'").fetchone()[0] == 10.0
+    assert con.exec_driver_sql("SELECT line_value FROM clean_lines WHERE invoice = 'C1001'").fetchone()[0] == 10.0
 
 
 def test_cancellation_classes(con):
-    classes = dict(con.execute("SELECT invoice, cancel_class FROM cancellation_class"))
+    classes = dict(con.exec_driver_sql("SELECT invoice, cancel_class FROM cancellation_class").fetchall())
     assert classes == {"C1001": "reversal_24h", "C1002": "other", "C1007": "unmatched_no_customer"}
 
 
 def test_reversal_requires_matching_quantity(con):
-    con.execute("UPDATE clean_lines SET quantity = -4 WHERE invoice = 'C1001'")
-    con.execute("DROP TABLE cancellation_class")
-    con.executescript((SQL / "02_classify_cancellations.sql").read_text())
-    assert con.execute("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == "other"
+    con.exec_driver_sql("UPDATE clean_lines SET quantity = -4 WHERE invoice = 'C1001'")
+    con.exec_driver_sql("DROP TABLE cancellation_class")
+    run_script(con, SQL / "02_classify_cancellations.sql")
+    assert con.exec_driver_sql("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == "other"
 
 
 def test_cancellation_must_not_precede_the_sale(con):
-    con.execute("UPDATE clean_lines SET invoice_date = '2009-12-31 09:00:00' WHERE invoice = 'C1001'")
-    con.execute("DROP TABLE cancellation_class")
-    con.executescript((SQL / "02_classify_cancellations.sql").read_text())
-    assert con.execute("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == "other"
+    con.exec_driver_sql("UPDATE clean_lines SET invoice_date = '2009-12-31 09:00:00' WHERE invoice = 'C1001'")
+    con.exec_driver_sql("DROP TABLE cancellation_class")
+    run_script(con, SQL / "02_classify_cancellations.sql")
+    assert con.exec_driver_sql("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == "other"
 
 
 @pytest.mark.parametrize("cancelled_at, expected", [
@@ -74,7 +84,7 @@ def test_cancellation_must_not_precede_the_sale(con):
     ("2010-01-02 10:01:00", "other"),         # 24 h 1 min: outside the window
 ])
 def test_reversal_window_is_at_most_24_hours(con, cancelled_at, expected):
-    con.execute("UPDATE clean_lines SET invoice_date = ? WHERE invoice = 'C1001'", (cancelled_at,))
-    con.execute("DROP TABLE cancellation_class")
-    con.executescript((SQL / "02_classify_cancellations.sql").read_text())
-    assert con.execute("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == expected
+    con.exec_driver_sql("UPDATE clean_lines SET invoice_date = %s WHERE invoice = 'C1001'", (cancelled_at,))
+    con.exec_driver_sql("DROP TABLE cancellation_class")
+    run_script(con, SQL / "02_classify_cancellations.sql")
+    assert con.exec_driver_sql("SELECT cancel_class FROM cancellation_class WHERE invoice = 'C1001'").fetchone()[0] == expected

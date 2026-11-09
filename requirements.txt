@@ -4,3 +4,5 @@ matplotlib>=3.8
 plotly>=5.20
 openpyxl>=3.1
 pytest>=8.0
+sqlalchemy>=2.0
+pymysql>=1.1

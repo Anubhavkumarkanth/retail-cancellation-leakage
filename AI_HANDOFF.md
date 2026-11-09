@@ -69,3 +69,10 @@ A shared technical record for project work. It contains no local machine paths, 
 - Live landing page and dashboard returned HTTP 200. The five figures, Excel workbook, and CSV listing returned HTTP 200. KPI values and template substitution verified.
 - Repository homepage now points to the live site; repository About description now reflects the live dashboard and 22 tests.
 - .pbix remains unbuilt because Power BI Desktop is not installed in the available environment. It is not claimed in the README or resume.
+
+### 2026-11-09 — SQLite replaced by MySQL 8
+
+- The pipeline, analysis, star-schema export and all three test files now use MySQL 8 through SQLAlchemy and PyMySQL. `DATABASE_URL` points at the pipeline database and `TEST_DATABASE_URL` at a separate throwaway database for the SQL-logic tests; `.env.example` documents both. Entries above that mention SQLite or `data/retail.db` describe the project before this change.
+- SQL changes: `GLOB` became `REGEXP '^[0-9]{5}'`; `julianday()` difference became `TIMESTAMPDIFF(SECOND, ...) <= 86400`; SQLite's implicit `rowid` became an explicit `clean_lines.line_id`; `strftime` became `DATE_FORMAT`; `customer_level` gained the `ORDER BY customer_id` SQLite gave implicitly, because the bootstrap depends on row order. Text columns use the binary collation `utf8mb4_0900_bin`, so comparisons stay case-sensitive as in SQLite.
+- Verification on MySQL 8.4.9: `run_all.py` rebuilt every output; all CSVs in `outputs/csv/`, `findings.json` and the five figures were byte-identical to the SQLite-built versions in Git (the workbook and dashboard differed only in timestamps and Plotly's random element IDs). All 22 tests passed. Star-schema row counts matched `docs/powerbi-guide.md`.
+- CI: `tests.yml` and `pages.yml` start a `mysql:8` service container. `pages.yml` runs only on `main`, so its MySQL setup is first exercised by the next push to `main`.
